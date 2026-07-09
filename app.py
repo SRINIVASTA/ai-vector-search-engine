@@ -11,46 +11,40 @@ st.set_page_config(page_title="AI Matcher & Broadcast Suite", layout="wide")
 # 1. Sidebar Configurations Panel
 st.sidebar.title("🔐 API Authentications")
 
-# Core Google Key Input
 google_api_key = st.sidebar.text_input(
-    label="1. Google AI API Key (Required for Vectors):",
+    label="1. Google AI API Key:",
     type="password",
     placeholder="Enter your google_api_key here...",
-    help="Required to index database entries via gemini-embedding-001."
+    help="Required to index database entries."
 )
-st.sidebar.markdown("[Get Google API Key ↗️](https://aistudio.google.com/)")
+st.sidebar.markdown("[Get Google API Key ↗️](https://google.com)")
 
 st.sidebar.markdown("---")
 
-# Reasoning Engine Selector Switch
 st.sidebar.subheader("🤖 Reasoning Engine Selection")
 ai_provider = st.sidebar.selectbox(
     "Choose your summary provider:",
     options=["Google Gemini", "Groq Llama 3"]
 )
 
-# Conditional display for Groq Key
 groq_api_key = ""
 if ai_provider == "Groq Llama 3":
     groq_api_key = st.sidebar.text_input(
         label="2. Groq Cloud API Key:",
         type="password",
-        placeholder="Enter your groq_api_key here...",
-        help="Required to run high-speed Llama 3 summarization."
+        placeholder="Enter your groq_api_key here..."
     )
     st.sidebar.markdown("[Get a Free Groq API Key ↗️](https://groq.com)")
 
 st.sidebar.markdown("---")
 
-# WhatsApp Broadcast Parameters Panel
 st.sidebar.subheader("📱 WhatsApp Community Settings")
 wa_instance = st.sidebar.text_input("WhatsApp Instance ID:", placeholder="e.g., 11011234")
 wa_token = st.sidebar.text_input("WhatsApp Gateway Token:", type="password", placeholder="Enter token...")
 wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.g., 1203632@g.us")
 
 # Main Canvas Header
-st.title("🚀 Two-Stage AI Search & WhatsApp Broadcast Suite")
-st.write(f"Index data records via Google Vector embeddings, summarize them using **{ai_provider}**, and blast notifications directly to WhatsApp.")
+st.title("🚀 AI Search & WhatsApp Broadcast Suite")
 
 # 2. Local Database Mock Dataset
 @st.cache_data
@@ -68,11 +62,9 @@ st.dataframe(df, use_container_width=True)
 # 3. Vector Database Processing Loop
 if google_api_key:
     try:
-        # Preprocess data fields for vector layout ingestion
         df["search_text"] = "Job: " + df["Title"] + " | Skills: " + df["Skills"] + " | Location: " + df["Location"]
         text_records = df["search_text"].tolist()
         
-        # Instantiate Google Embedding Engine (Fixed working production string)
         embeddings = GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-001", 
             google_api_key=google_api_key
@@ -80,7 +72,7 @@ if google_api_key:
         
         with st.spinner("Processing rows into AI Vector Map..."):
             vector_db = FAISS.from_texts(text_records, embeddings)
-        st.success("✅ AI Embeddings generated and indexed successfully!")
+        st.success("✅ AI Embeddings indexed successfully!")
 
         # 4. Search and Synthesis Block
         st.markdown("---")
@@ -93,7 +85,7 @@ if google_api_key:
             
             raw_context = "\n".join([doc.page_content for doc in matched_results])
             
-            # Formulate foundational instruction prompt
+            # STAGE A: Keep the internal AI thinking prompt detailed for accuracy
             system_prompt = f"""
             You are an expert recruitment assistant. 
             Based strictly on the following database records:
@@ -105,20 +97,18 @@ if google_api_key:
             
             ai_response = ""
 
-            # Path A: Gemini Processing 
             if ai_provider == "Google Gemini":
-                with st.spinner("✨ Google Gemini model calculating reply..."):
+                with st.spinner("✨ Google Gemini calculating reply..."):
                     llm = ChatGoogleGenerativeAI(
-                        model="gemini-3.5-flash",  # Direct up-to-date API string mapping
+                        model="gemini-3.5-flash", 
                         google_api_key=google_api_key,
                         temperature=0.3
                     )
                     response = llm.invoke(system_prompt)
                     ai_response = response.content
-                st.markdown("### 🏆 Top Database Matches Explained (Google Gemini):")
+                st.markdown("### 🏆 Detailed Database Analysis (Dashboard View):")
                 st.info(ai_response)
 
-            # Path B: Groq Llama 3 Processing
             elif ai_provider == "Groq Llama 3":
                 if groq_api_key:
                     with st.spinner("⚡ Groq LPU computing Llama 3 response..."):
@@ -129,38 +119,45 @@ if google_api_key:
                             temperature=0.3
                         )
                         ai_response = completion.choices.message.content
-                    st.markdown("### 🏆 Top Database Matches Explained (Groq Llama 3):")
+                    st.markdown("### 🏆 Detailed Database Analysis (Dashboard View):")
                     st.info(ai_response)
                 else:
-                    st.error("🔑 Groq Key Missing: Please provide your Groq API Key in the left sidebar to generate the summary statement.")
+                    st.error("🔑 Groq Key Missing. Please provide it in the sidebar.")
 
-            # 5. Active WhatsApp Broadcast Engine Interface Trigger
+            # STAGE B: SIMPLIFIED WHATSAPP TEXT GENERATION
             if ai_response:
                 st.markdown("---")
                 st.subheader("📤 Community Broadcast Panel")
                 
+                # Transform raw FAISS results into a simple, ultra-clean format for WhatsApp
+                simplified_wa_text = f"📢 *New Job Match Alert!*\n\n*Query:* {user_query}\n\n"
+                for index, doc in enumerate(matched_results):
+                    # Cleans up internal formatting strings to make it look native
+                    clean_item = doc.page_content.replace("Job: ", "*Position:* ").replace(" | Skills: ", "\n*Skills:* ").replace(" | Location: ", "\n*Location:* ")
+                    simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_item}\n\n"
+                simplified_wa_text += "🤖 _Sent via AI Matcher Suite_"
+
+                # Preview what will be sent to WhatsApp
+                st.markdown("**Preview of Simple WhatsApp Message:**")
+                st.code(simplified_wa_text, language="markdown")
+                
                 if wa_instance and wa_token and wa_chat_id:
-                    if st.button("🚀 Push Summary to WhatsApp Community", type="primary"):
-                        with st.spinner("Transmitting data packet to WhatsApp API..."):
-                            # HTTP Endpoint path setup
+                    if st.button("🚀 Push Simple Text to WhatsApp", type="primary"):
+                        with st.spinner("Transmitting to WhatsApp..."):
                             url = f"https://green-api.com{wa_instance}/sendMessage/{wa_token}"
-                            
-                            # Build text payload converting markdown components to WhatsApp format
-                            whatsapp_message = f"📢 *AI Match Analysis Alert*\n\n{ai_response}\n\n_Sent via Streamlit AI Engine_"
-                            
-                            payload = {"chatId": wa_chat_id, "message": whatsapp_message}
+                            payload = {"chatId": wa_chat_id, "message": simplified_wa_text}
                             headers = {'Content-Type': 'application/json'}
                             
                             response = requests.post(url, json=payload, headers=headers)
                             
                             if response.status_code == 200:
-                                st.success("🎉 Successfully posted to your WhatsApp Community chat dashboard!")
+                                st.success("🎉 Simple message posted to your WhatsApp Community!")
                             else:
-                                st.error(f"WhatsApp Dispatch Failed. API Response Error: {response.text}")
+                                st.error(f"WhatsApp Dispatch Failed: {response.text}")
                 else:
-                    st.warning("💡 To broadcast these notes, fill in the WhatsApp panel properties located on the left menu sidebar.")
+                    st.warning("💡 Fill in your WhatsApp configuration parameters in the sidebar to send this message.")
                     
     except Exception as e:
-        st.error(f"❌ Application Error encountered: {e}")
+        st.error(f"❌ Application Error: {e}")
 else:
-    st.info("💡 Application Paused: Please enter your Google API Key in the left sidebar configuration panel to boot up the vector engine.")
+    st.info("💡 Please enter your Google API Key in the left sidebar to boot up the system.")
