@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 from groq import Groq
 from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 # Core Page Setup
 st.set_page_config(page_title="AI Matcher Suite", layout="wide")
@@ -24,11 +24,11 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("🤖 Reasoning Engine Selection")
 ai_provider = st.sidebar.selectbox(
     "Choose your summary provider:",
-    options=["Google Gemini", "Groq Llama 3"]
+    options=["Local Formatter (Zero Quota Limit)", "Groq Llama 3 (Fast LLM)"]
 )
 
 groq_api_key = ""
-if ai_provider == "Groq Llama 3":
+if ai_provider == "Groq Llama 3 (Fast LLM)":
     groq_api_key = st.sidebar.text_input(
         label="2. Groq Cloud API Key:",
         type="password",
@@ -65,6 +65,7 @@ if google_api_key:
         df["search_text"] = "Job: " + df["Title"] + " | Skills: " + df["Skills"] + " | Location: " + df["Location"]
         text_records = df["search_text"].tolist()
         
+        # Uses the Embedding engine (This has a massive quota, it will not hit the 429 limit easily)
         embeddings = GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-001", 
             google_api_key=google_api_key
@@ -83,47 +84,52 @@ if google_api_key:
             with st.spinner("Scanning vector clusters for closest matches..."):
                 matched_results = vector_db.similarity_search(user_query, k=2)
             
-            raw_context = "\n".join([doc.page_content for doc in matched_results])
-            
-            # Keep system prompt active in the background for underlying pipeline stability
-            system_prompt = f"Context:\n{raw_context}\nQuery: {user_query}. Process silently."
             ai_response_check = False
+            groq_response_text = ""
 
-            if ai_provider == "Google Gemini":
-                with st.spinner("✨ Processing query via Google Gemini..."):
-                    llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", google_api_key=google_api_key, temperature=0.3)
-                    # Triggering background run silently to ensure credentials evaluate perfectly
-                    _ = llm.invoke(system_prompt)
-                    ai_response_check = True
+            # OPTION 1: Local Formatter (Completely free, offline, infinite runs)
+            if ai_provider == "Local Formatter (Zero Quota Limit)":
+                ai_response_check = True
 
-            elif ai_provider == "Groq Llama 3":
+            # OPTION 2: Groq Llama 3 (Uses Groq's high-speed cloud chip instead of Google)
+            elif ai_provider == "Groq Llama 3 (Fast LLM)":
                 if groq_api_key:
                     with st.spinner("⚡ Processing query via Groq LPU..."):
+                        raw_context = "\n".join([doc.page_content for doc in matched_results])
+                        system_prompt = f"Context:\n{raw_context}\nQuery: {user_query}. Summarize nicely."
+                        
                         client = Groq(api_key=groq_api_key)
-                        _ = client.chat.completions.create(
+                        completion = client.chat.completions.create(
                             model="llama3-8b-8192",
                             messages=[{"role": "user", "content": system_prompt}],
                             temperature=0.3
                         )
+                        groq_response_text = completion.choices.message.content
                         ai_response_check = True
                 else:
                     st.error("🔑 Groq Key Missing. Please provide it in the sidebar.")
 
-            # 5. Clean Interface Display Block
+            # 5. Build and Display the Clean Output Card
             if ai_response_check:
                 st.markdown("### 🏆 Top Database Matches Found:")
                 
-                # Transform raw FAISS items directly into a crisp visual card right inside your viewport
+                # Format the text card instantly using Python's native processing power
                 simplified_wa_text = f"📢 *New Job Match Alert!*\n\n*Query:* {user_query}\n\n"
+                
+                # If Groq processed a custom summary, append it at the top
+                if groq_response_text:
+                    simplified_wa_text += f"*AI Summary:*\n{groq_response_text}\n\n---\n\n"
+                
                 for index, doc in enumerate(matched_results):
                     clean_item = doc.page_content.replace("Job: ", "*Position:* ").replace(" | Skills: ", "\n*Skills:* ").replace(" | Location: ", "\n*Location:* ")
                     simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_item}\n\n"
+                
                 simplified_wa_text += "🤖 _Sent via AI Matcher Suite_"
 
-                # Displays only the elegant message text box directly on your canvas
+                # Display the clean result block onto your screen
                 st.info(simplified_wa_text)
                 
-                # Dynamic action button interface routing logic
+                # 6. Active WhatsApp Broadcast Engine Logic
                 if wa_instance and wa_token and wa_chat_id:
                     if st.button("🚀 Push Message to WhatsApp Community", type="primary"):
                         with st.spinner("Transmitting to WhatsApp..."):
