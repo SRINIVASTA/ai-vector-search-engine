@@ -44,11 +44,7 @@ wa_instance = st.sidebar.text_input("WhatsApp Instance ID:", placeholder="e.g., 
 wa_token = st.sidebar.text_input("WhatsApp Gateway Token:", type="password", placeholder="Enter token...")
 wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.g., 1203632@g.us")
 
-# Main Canvas Header
-st.title("🚀 AI Search & WhatsApp Broadcast Suite")
-st.write("An embedding-powered matching layout designed to parse custom profiles and push updates directly to messaging networks.")
-
-# 2. Mock Dataset (Upgraded with Timestamps)
+# 2. Hardcoded Database Loader (Runs purely in background memory now)
 @st.cache_data
 def load_mock_data():
     return pd.DataFrame({
@@ -62,20 +58,14 @@ def load_mock_data():
             "https://indeed.com",
             "https://glassdoor.com"
         ],
-        "PostedDate": ["2026-07-08", "2026-07-07", "2026-07-05", "2026-06-25"]  # YYYY-MM-DD dynamic formats
+        "PostedDate": ["2026-07-08", "2026-07-07", "2026-07-05", "2026-06-25"]
     })
 
 df = load_mock_data()
 
-# Sliding Example Expander (Reflecting structural timeline metrics)
-with st.expander("💡 Click to view example database format reference"):
-    st.write("Your backend or input data evaluates records matching this structural alignment:")
-    st.dataframe(df, use_container_width=True)
-
 # 3. Vector Database Processing Loop
 if google_api_key:
     try:
-        # Preprocess and merge all dimensions including Date indices
         df["search_text"] = (
             "Job: " + df["Title"] + 
             " | Skills: " + df["Skills"] + 
@@ -95,7 +85,7 @@ if google_api_key:
             vector_db = FAISS.from_texts(text_records, embeddings)
         st.success("✅ AI Embeddings indexed successfully!")
 
-        # 4. Search and Synthesis Block
+        # 4. Strictly the Context Match Finder Interface
         st.markdown("---")
         st.subheader("🔍 Context Match Finder")
         user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., data scientist, Mumbai")
@@ -139,10 +129,9 @@ if google_api_key:
                 current_date = datetime.now().date()
                 
                 for index, doc in enumerate(matched_results):
-                    # Extract the raw content components
                     raw_text = doc.page_content
                     
-                    # Calculate human-friendly "days ago" metadata on the fly
+                    # Calculate dates dynamically
                     days_ago_str = ""
                     try:
                         date_part = raw_text.split(" | PostedDate: ")[1].strip()
@@ -157,7 +146,6 @@ if google_api_key:
                     except Exception:
                         pass
                     
-                    # Custom cleanup replacement rules
                     clean_item = (
                         raw_text
                         .replace("Job: ", "*Position:* ")
@@ -168,9 +156,7 @@ if google_api_key:
                         .replace(" | PostedDate: ", "\n*📅 Posted Date:* ")
                     )
                     
-                    # Append relative human-friendly date data onto card blocks
                     clean_item += days_ago_str
-                    
                     simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_item}\n\n"
                 
                 simplified_wa_text += "🤖 _Sent via AI Matcher Suite_"
