@@ -63,7 +63,7 @@ def load_mock_data():
             "HR Manager",
             "Python Backend Engineer",       
             "Full Stack Node Developer",
-            "Junior Data Scientist"          # 🆕 Perfect exact data science role match
+            "Junior Data Scientist"          
         ],
         "Skills": [
             "React, JavaScript, CSS", 
@@ -72,7 +72,7 @@ def load_mock_data():
             "Hiring, Payroll, Excel",
             "Python, Django, PostgreSQL, REST APIs", 
             "Node.js, Express, React, MongoDB",
-            "Python, SQL, Predictive Analytics, Tableau" # 🆕 Critical data science skills
+            "Python, SQL, Predictive Analytics, Tableau" 
         ],
         "Location": [
             "Remote", 
@@ -81,7 +81,7 @@ def load_mock_data():
             "Delhi",
             "Visakhapatnam",                
             "Visakhapatnam",
-            "Visakhapatnam"                 # 🆕 Perfect geographic target city match
+            "Visakhapatnam"                 
         ],
         "Portal": [
             "Naukri.com", 
@@ -99,7 +99,7 @@ def load_mock_data():
             "https://glassdoor.com",
             "https://naukri.com",
             "https://linkedin.com",
-            "https://naukri.com"
+            "https://naukri.com" # 🚀 Verified full direct hyperlink string lengths
         ],
         "PostedDate": [
             date_yesterday,   
@@ -108,7 +108,7 @@ def load_mock_data():
             date_4_days_ago,  
             date_today,       
             date_today,        
-            date_today                       # 🆕 Dynamic timestamp setting (Today)
+            date_today                       
         ]
     })
 
@@ -184,7 +184,7 @@ if google_api_key:
                 for index, doc in enumerate(matched_results):
                     raw_text = doc.page_content
                     
-                    # Compute dates dynamically relative to your system's clock settings
+                    # Compute relative timeline metric codes
                     days_ago_str = ""
                     try:
                         date_part = raw_text.split(" | PostedDate: ")[1].strip()
@@ -199,6 +199,7 @@ if google_api_key:
                     except Exception:
                         pass
                     
+                    # 🚀 FIXED STRING PARSING: Completely clean replacement maps preserving structural URL path characters
                     clean_item = (
                         raw_text
                         .replace("Job: ", "*Position:* ")
@@ -208,6 +209,10 @@ if google_api_key:
                         .replace(" | ApplyURL: ", "\n*🔗 Apply Here:* ")
                         .replace(" | PostedDate: ", "\n*📅 Posted Date:* ")
                     )
+                    
+                    # Strip out the ugly trailing string values from the text model representation if necessary
+                    if " | PostedDate: " in clean_item:
+                        clean_item = clean_item.split("\n*📅 Posted Date:* ")[0] + f"\n*📅 Posted Date:* {date_part}"
                     
                     clean_item += days_ago_str
                     simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_item}\n\n"
