@@ -43,8 +43,7 @@ st.sidebar.subheader("📱 WhatsApp Community Settings")
 wa_instance = st.sidebar.text_input("WhatsApp Instance ID:", placeholder="e.g., 11011234")
 wa_token = st.sidebar.text_input("WhatsApp Gateway Token:", type="password", placeholder="Enter token...")
 wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.g., 1203632@g.us")
-
-# 2. Hardcoded Database Loader (Perfectly balanced with 7 elements per column matrix)
+# 2. Hardcoded Database Loader (Perfectly balanced column rows)
 @st.cache_data
 def load_mock_data():
     today = datetime.now().date()
@@ -56,6 +55,7 @@ def load_mock_data():
     date_4_days_ago = (today - timedelta(days=4)).strftime("%Y-%m-%d")
     
     return pd.DataFrame({
+        "ID": ["0", "1", "2", "3", "4", "5", "6"],
         "Title": [
             "Frontend React Developer", 
             "Data Scientist",               
@@ -64,6 +64,15 @@ def load_mock_data():
             "Python Backend Engineer",       
             "Full Stack Node Developer",
             "Junior Data Scientist"          
+        ],
+        "Company": [
+            "Moprens Solutions",          
+            "TechCorp Global",
+            "CloudScale Tech",
+            "Global Nexus HR",
+            "Vizag Innovate Labs",        
+            "Sankhya Technologies",       
+            "Alpha Analytics India"       
         ],
         "Skills": [
             "React, JavaScript, CSS", 
@@ -96,10 +105,10 @@ def load_mock_data():
             "https://naukri.com",
             "https://linkedin.com",
             "https://indeed.com",
-            "https://glassdoor.com",
+            "https://glassdoor.co.in",
             "https://naukri.com",
             "https://linkedin.com",
-            "https://naukri.com" # 🚀 Verified full direct hyperlink string lengths
+            "https://naukri.com"
         ],
         "PostedDate": [
             date_yesterday,   
@@ -118,16 +127,15 @@ df = load_mock_data()
 if google_api_key:
     try:
         df["search_text"] = (
-            "Job: " + df["Title"] + 
+            "ID: " + df["ID"] +
+            " | Job: " + df["Title"] + 
+            " | Company: " + df["Company"] + 
             " | Skills: " + df["Skills"] + 
             " | Location: " + df["Location"] + 
-            " | Portal: " + df["Portal"] + 
-            " | ApplyURL: " + df["ApplyURL"] +
-            " | PostedDate: " + df["PostedDate"]
+            " | Portal: " + df["Portal"]
         )
         text_records = df["search_text"].tolist()
         
-        # Connect to Google's text-embedding platform cluster endpoints
         embeddings = GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-001", 
             google_api_key=google_api_key
@@ -136,15 +144,13 @@ if google_api_key:
         with st.spinner("Processing rows into AI Vector Map..."):
             vector_db = FAISS.from_texts(text_records, embeddings)
         st.success("✅ AI Embeddings indexed successfully!")
-
         # 4. Strictly the Context Match Finder Interface
         st.markdown("---")
         st.subheader("🔍 Context Match Finder")
-        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., data scientist, visakhapatnam")
+        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., developer, visakhapatnam")
         
         if user_query:
             with st.spinner("Scanning vector clusters for closest matches..."):
-                # Query nearest 2 elements
                 matched_results = vector_db.similarity_search(user_query, k=2)
             
             ai_response_check = False
@@ -184,11 +190,24 @@ if google_api_key:
                 for index, doc in enumerate(matched_results):
                     raw_text = doc.page_content
                     
-                    # Compute relative timeline metric codes
+                    try:
+                        row_id = raw_text.split("ID: ")[1].split(" | Job: ")[0].strip()
+                        matched_row = df[df["ID"] == row_id].iloc[0]
+                        
+                        job_title = matched_row["Title"]
+                        company_name = matched_row["Company"] 
+                        skills = matched_row["Skills"]
+                        location = matched_row["Location"]
+                        portal = matched_row["Portal"]
+                        url_link = matched_row["ApplyURL"] 
+                        posted_date_raw = matched_row["PostedDate"]
+                    except Exception:
+                        job_title, company_name, skills, location, portal, url_link, posted_date_raw = "Job Profile", "Hiring Organization", "Skills Matrix", "Location", "Portal", "https://linkedin.com", "2026-07-09"
+                    
+                    # Compute relative timelines
                     days_ago_str = ""
                     try:
-                        date_part = raw_text.split(" | PostedDate: ")[1].strip()
-                        extracted_date = datetime.strptime(date_part, "%Y-%m-%d").date()
+                        extracted_date = datetime.strptime(posted_date_raw.strip(), "%Y-%m-%d").date()
                         delta = (current_date - extracted_date).days
                         if delta == 0:
                             days_ago_str = " (Today)"
@@ -199,23 +218,18 @@ if google_api_key:
                     except Exception:
                         pass
                     
-                    # 🚀 FIXED STRING PARSING: Completely clean replacement maps preserving structural URL path characters
-                    clean_item = (
-                        raw_text
-                        .replace("Job: ", "*Position:* ")
-                        .replace(" | Skills: ", "\n*Skills:* ")
-                        .replace(" | Location: ", "\n*Location:* ")
-                        .replace(" | Portal: ", "\n*Source Portal:* ")
-                        .replace(" | ApplyURL: ", "\n*🔗 Apply Here:* ")
-                        .replace(" | PostedDate: ", "\n*📅 Posted Date:* ")
+                    # Construct clean card layouts with bold anchors
+                    clean_card = (
+                        f"*Position:* {job_title}\n"
+                        f"*Company:* {company_name}\n"      
+                        f"*Skills:* {skills}\n"
+                        f"*Location:* {location}\n"
+                        f"*Source Portal:* {portal}\n"
+                        f"*🔗 Apply Here:* {url_link.strip()}\n" 
+                        f"*📅 Posted Date:* {posted_date_raw}{days_ago_str}"
                     )
                     
-                    # Strip out the ugly trailing string values from the text model representation if necessary
-                    if " | PostedDate: " in clean_item:
-                        clean_item = clean_item.split("\n*📅 Posted Date:* ")[0] + f"\n*📅 Posted Date:* {date_part}"
-                    
-                    clean_item += days_ago_str
-                    simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_item}\n\n"
+                    simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_card}\n\n"
                 
                 simplified_wa_text += "🤖 _Sent via AI Matcher Suite_"
 
@@ -226,7 +240,9 @@ if google_api_key:
                 if wa_instance and wa_token and wa_chat_id:
                     if st.button("🚀 Push Message to WhatsApp Community", type="primary"):
                         with st.spinner("Transmitting to WhatsApp..."):
+                            # 🚀 FILED API ROUTE: Secure network endpoint structure
                             url = f"https://green-api.com{wa_instance}/sendMessage/{wa_token}"
+                            
                             payload = {"chatId": wa_chat_id, "message": simplified_wa_text}
                             headers = {'Content-Type': 'application/json'}
                             
@@ -234,7 +250,7 @@ if google_api_key:
                             if response.status_code == 200:
                                 st.success("🎉 Message posted to your WhatsApp Community successfully!")
                             else:
-                                st.error(f"WhatsApp Dispatch Failed: {response.text}")
+                                st.error(f"WhatsApp Dispatch Failed. Server Error: {response.text}")
                 else:
                     st.warning("💡 Fill in your WhatsApp configuration parameters in the sidebar to send this message.")
                     
