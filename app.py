@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+from datetime import datetime
 from groq import Groq
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -47,7 +48,7 @@ wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.
 st.title("🚀 AI Search & WhatsApp Broadcast Suite")
 st.write("An embedding-powered matching layout designed to parse custom profiles and push updates directly to messaging networks.")
 
-# 2. Mock Dataset (Upgraded with Portals and Redirect Links)
+# 2. Mock Dataset (Upgraded with Timestamps)
 @st.cache_data
 def load_mock_data():
     return pd.DataFrame({
@@ -60,12 +61,13 @@ def load_mock_data():
             "https://linkedin.com",
             "https://indeed.com",
             "https://glassdoor.com"
-        ]
+        ],
+        "PostedDate": ["2026-07-08", "2026-07-07", "2026-07-05", "2026-06-25"]  # YYYY-MM-DD dynamic formats
     })
 
 df = load_mock_data()
 
-# Sliding Example Expander (Reflecting new link columns)
+# Sliding Example Expander (Reflecting structural timeline metrics)
 with st.expander("💡 Click to view example database format reference"):
     st.write("Your backend or input data evaluates records matching this structural alignment:")
     st.dataframe(df, use_container_width=True)
@@ -73,13 +75,14 @@ with st.expander("💡 Click to view example database format reference"):
 # 3. Vector Database Processing Loop
 if google_api_key:
     try:
-        # Preprocess and merge all dimensions including Portal and Apply Link data structures
+        # Preprocess and merge all dimensions including Date indices
         df["search_text"] = (
             "Job: " + df["Title"] + 
             " | Skills: " + df["Skills"] + 
             " | Location: " + df["Location"] + 
             " | Portal: " + df["Portal"] + 
-            " | ApplyURL: " + df["ApplyURL"]
+            " | ApplyURL: " + df["ApplyURL"] +
+            " | PostedDate: " + df["PostedDate"]
         )
         text_records = df["search_text"].tolist()
         
@@ -133,21 +136,46 @@ if google_api_key:
                 if groq_response_text:
                     simplified_wa_text += f"*AI Summary:*\n{groq_response_text}\n\n---\n\n"
                 
+                current_date = datetime.now().date()
+                
                 for index, doc in enumerate(matched_results):
-                    # Direct structural string clean up mapping for smooth presentation layouts
+                    # Extract the raw content components
+                    raw_text = doc.page_content
+                    
+                    # Calculate human-friendly "days ago" metadata on the fly
+                    days_ago_str = ""
+                    try:
+                        date_part = raw_text.split(" | PostedDate: ")[1].strip()
+                        extracted_date = datetime.strptime(date_part, "%Y-%m-%d").date()
+                        delta = (current_date - extracted_date).days
+                        if delta == 0:
+                            days_ago_str = " (Today)"
+                        elif delta == 1:
+                            days_ago_str = " (1 day ago)"
+                        else:
+                            days_ago_str = f" ({delta} days ago)"
+                    except Exception:
+                        pass
+                    
+                    # Custom cleanup replacement rules
                     clean_item = (
-                        doc.page_content
+                        raw_text
                         .replace("Job: ", "*Position:* ")
                         .replace(" | Skills: ", "\n*Skills:* ")
                         .replace(" | Location: ", "\n*Location:* ")
                         .replace(" | Portal: ", "\n*Source Portal:* ")
                         .replace(" | ApplyURL: ", "\n*🔗 Apply Here:* ")
+                        .replace(" | PostedDate: ", "\n*📅 Posted Date:* ")
                     )
+                    
+                    # Append relative human-friendly date data onto card blocks
+                    clean_item += days_ago_str
+                    
                     simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_item}\n\n"
                 
                 simplified_wa_text += "🤖 _Sent via AI Matcher Suite_"
 
-                # Render output display
+                # Render clean mobile UI card on the dashboard
                 st.info(simplified_wa_text)
                 
                 # 6. Active WhatsApp Broadcast Engine Logic
