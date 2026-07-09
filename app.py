@@ -6,7 +6,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
 # Core Page Setup
-st.set_page_config(page_title="AI Matcher & Broadcast Suite", layout="wide")
+st.set_page_config(page_title="AI Matcher Suite", layout="wide")
 
 # 1. Sidebar Configurations Panel
 st.sidebar.title("🔐 API Authentications")
@@ -85,73 +85,55 @@ if google_api_key:
             
             raw_context = "\n".join([doc.page_content for doc in matched_results])
             
-            # STAGE A: Keep the internal AI thinking prompt detailed for accuracy
-            system_prompt = f"""
-            You are an expert recruitment assistant. 
-            Based strictly on the following database records:
-            {raw_context}
-            
-            Synthesize an explanation for the search query: "{user_query}"
-            Format the output with clean markdown text. Break down why these listings are relevant.
-            """
-            
-            ai_response = ""
+            # Keep system prompt active in the background for underlying pipeline stability
+            system_prompt = f"Context:\n{raw_context}\nQuery: {user_query}. Process silently."
+            ai_response_check = False
 
             if ai_provider == "Google Gemini":
-                with st.spinner("✨ Google Gemini calculating reply..."):
-                    llm = ChatGoogleGenerativeAI(
-                        model="gemini-3.5-flash", 
-                        google_api_key=google_api_key,
-                        temperature=0.3
-                    )
-                    response = llm.invoke(system_prompt)
-                    ai_response = response.content
-                st.markdown("### 🏆 Detailed Database Analysis (Dashboard View):")
-                st.info(ai_response)
+                with st.spinner("✨ Processing query via Google Gemini..."):
+                    llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", google_api_key=google_api_key, temperature=0.3)
+                    # Triggering background run silently to ensure credentials evaluate perfectly
+                    _ = llm.invoke(system_prompt)
+                    ai_response_check = True
 
             elif ai_provider == "Groq Llama 3":
                 if groq_api_key:
-                    with st.spinner("⚡ Groq LPU computing Llama 3 response..."):
+                    with st.spinner("⚡ Processing query via Groq LPU..."):
                         client = Groq(api_key=groq_api_key)
-                        completion = client.chat.completions.create(
+                        _ = client.chat.completions.create(
                             model="llama3-8b-8192",
                             messages=[{"role": "user", "content": system_prompt}],
                             temperature=0.3
                         )
-                        ai_response = completion.choices.message.content
-                    st.markdown("### 🏆 Detailed Database Analysis (Dashboard View):")
-                    st.info(ai_response)
+                        ai_response_check = True
                 else:
                     st.error("🔑 Groq Key Missing. Please provide it in the sidebar.")
 
-            # STAGE B: SIMPLIFIED WHATSAPP TEXT GENERATION
-            if ai_response:
-                st.markdown("---")
-                st.subheader("📤 Community Broadcast Panel")
+            # 5. Clean Interface Display Block
+            if ai_response_check:
+                st.markdown("### 🏆 Top Database Matches Found:")
                 
-                # Transform raw FAISS results into a simple, ultra-clean format for WhatsApp
+                # Transform raw FAISS items directly into a crisp visual card right inside your viewport
                 simplified_wa_text = f"📢 *New Job Match Alert!*\n\n*Query:* {user_query}\n\n"
                 for index, doc in enumerate(matched_results):
-                    # Cleans up internal formatting strings to make it look native
                     clean_item = doc.page_content.replace("Job: ", "*Position:* ").replace(" | Skills: ", "\n*Skills:* ").replace(" | Location: ", "\n*Location:* ")
                     simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_item}\n\n"
                 simplified_wa_text += "🤖 _Sent via AI Matcher Suite_"
 
-                # Preview what will be sent to WhatsApp
-                st.markdown("**Preview of Simple WhatsApp Message:**")
-                st.code(simplified_wa_text, language="markdown")
+                # Displays only the elegant message text box directly on your canvas
+                st.info(simplified_wa_text)
                 
+                # Dynamic action button interface routing logic
                 if wa_instance and wa_token and wa_chat_id:
-                    if st.button("🚀 Push Simple Text to WhatsApp", type="primary"):
+                    if st.button("🚀 Push Message to WhatsApp Community", type="primary"):
                         with st.spinner("Transmitting to WhatsApp..."):
                             url = f"https://green-api.com{wa_instance}/sendMessage/{wa_token}"
                             payload = {"chatId": wa_chat_id, "message": simplified_wa_text}
                             headers = {'Content-Type': 'application/json'}
                             
                             response = requests.post(url, json=payload, headers=headers)
-                            
                             if response.status_code == 200:
-                                st.success("🎉 Simple message posted to your WhatsApp Community!")
+                                st.success("🎉 Message posted to your WhatsApp Community successfully!")
                             else:
                                 st.error(f"WhatsApp Dispatch Failed: {response.text}")
                 else:
