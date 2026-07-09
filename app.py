@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from groq import Groq
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_core.documents import Document
 
 # Core Page Setup
 st.set_page_config(page_title="AI Matcher Suite", layout="wide")
@@ -43,7 +44,7 @@ st.sidebar.subheader("📱 WhatsApp Community Settings")
 wa_instance = st.sidebar.text_input("WhatsApp Instance ID:", placeholder="e.g., 11011234")
 wa_token = st.sidebar.text_input("WhatsApp Gateway Token:", type="password", placeholder="Enter token...")
 wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.g., 1203632@g.us")
-# 2. Hardcoded Database Loader (Perfectly balanced column rows)
+# 2. Hardcoded Database Loader (Every column layout precisely matched to 7 components)
 @st.cache_data
 def load_mock_data():
     today = datetime.now().date()
@@ -126,15 +127,15 @@ df = load_mock_data()
 # 3. Vector Database Processing Loop
 if google_api_key:
     try:
-        df["search_text"] = (
-            "ID: " + df["ID"] +
-            " | Job: " + df["Title"] + 
-            " | Company: " + df["Company"] + 
-            " | Skills: " + df["Skills"] + 
-            " | Location: " + df["Location"] + 
-            " | Portal: " + df["Portal"]
-        )
-        text_records = df["search_text"].tolist()
+        # Create standard Langchain Document objects carrying explicit key-value parameters inside the metadata block
+        documents = []
+        for index, row in df.iterrows():
+            search_string = f"Job: {row['Title']} | Company: {row['Company']} | Skills: {row['Skills']} | Location: {row['Location']} | Portal: {row['Portal']}"
+            doc = Document(
+                page_content=search_string,
+                metadata={"row_id": str(row['ID'])} # 🚀 Metadata injection mapping handles matching profiles safely
+            )
+            documents.append(doc)
         
         embeddings = GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-001", 
@@ -142,7 +143,7 @@ if google_api_key:
         )
         
         with st.spinner("Processing rows into AI Vector Map..."):
-            vector_db = FAISS.from_texts(text_records, embeddings)
+            vector_db = FAISS.from_documents(documents, embeddings) # 🚀 Changed from from_texts to from_documents
         st.success("✅ AI Embeddings indexed successfully!")
         # 4. Strictly the Context Match Finder Interface
         st.markdown("---")
@@ -188,10 +189,9 @@ if google_api_key:
                 current_date = datetime.now().date()
                 
                 for index, doc in enumerate(matched_results):
-                    raw_text = doc.page_content
-                    
+                    # 🚀 ZERO-EXCEPTION RETRIEVAL: Pull directly out of doc.metadata dictionary object maps
                     try:
-                        row_id = raw_text.split("ID: ")[1].split(" | Job: ")[0].strip()
+                        row_id = doc.metadata["row_id"]
                         matched_row = df[df["ID"] == row_id].iloc[0]
                         
                         job_title = matched_row["Title"]
@@ -199,9 +199,10 @@ if google_api_key:
                         skills = matched_row["Skills"]
                         location = matched_row["Location"]
                         portal = matched_row["Portal"]
-                        url_link = matched_row["ApplyURL"] 
+                        url_link = matched_row["ApplyURL"] # 🔗 Safely retains every query string tracking symbol without clipping
                         posted_date_raw = matched_row["PostedDate"]
-                    except Exception:
+                    except Exception as extraction_err:
+                        # Safety fallback parameters assignment block
                         job_title, company_name, skills, location, portal, url_link, posted_date_raw = "Job Profile", "Hiring Organization", "Skills Matrix", "Location", "Portal", "https://linkedin.com", "2026-07-09"
                     
                     # Compute relative timelines
@@ -218,7 +219,7 @@ if google_api_key:
                     except Exception:
                         pass
                     
-                    # Construct clean card layouts with bold anchors
+                    # Construct clean card layout using proper asterisks (*) for WhatsApp bold text headers
                     clean_card = (
                         f"*Position:* {job_title}\n"
                         f"*Company:* {company_name}\n"      
@@ -240,7 +241,6 @@ if google_api_key:
                 if wa_instance and wa_token and wa_chat_id:
                     if st.button("🚀 Push Message to WhatsApp Community", type="primary"):
                         with st.spinner("Transmitting to WhatsApp..."):
-                            # 🚀 FILED API ROUTE: Secure network endpoint structure
                             url = f"https://green-api.com{wa_instance}/sendMessage/{wa_token}"
                             
                             payload = {"chatId": wa_chat_id, "message": simplified_wa_text}
@@ -250,7 +250,7 @@ if google_api_key:
                             if response.status_code == 200:
                                 st.success("🎉 Message posted to your WhatsApp Community successfully!")
                             else:
-                                st.error(f"WhatsApp Dispatch Failed. Server Error: {response.text}")
+                                st.error(f"WhatsApp Dispatch Failed. Server Error Details: {response.text}")
                 else:
                     st.warning("💡 Fill in your WhatsApp configuration parameters in the sidebar to send this message.")
                     
