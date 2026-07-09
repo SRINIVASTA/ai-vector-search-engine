@@ -9,7 +9,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 # Core Page Setup
 st.set_page_config(page_title="AI Matcher Suite", layout="wide")
 
-# 1. Sidebar Configurations Panel
+# 1. Sidebar Configurations Panel (Acts as a Password Input)
 st.sidebar.title("🔐 API Authentications")
 
 google_api_key = st.sidebar.text_input(
@@ -44,13 +44,12 @@ wa_instance = st.sidebar.text_input("WhatsApp Instance ID:", placeholder="e.g., 
 wa_token = st.sidebar.text_input("WhatsApp Gateway Token:", type="password", placeholder="Enter token...")
 wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.g., 1203632@g.us")
 
-# 2. Hardcoded Database Loader (Completely Dynamic Latest Dates)
+# 2. Hardcoded Database Loader (Perfectly balanced with 7 elements per column matrix)
 @st.cache_data
 def load_mock_data():
-    # Fetch today's current live date dynamically
     today = datetime.now().date()
     
-    # Calculate relative recent days cleanly
+    # Generate relative timelines automatically
     date_today = today.strftime("%Y-%m-%d")
     date_yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
     date_2_days_ago = (today - timedelta(days=2)).strftime("%Y-%m-%d")
@@ -59,11 +58,12 @@ def load_mock_data():
     return pd.DataFrame({
         "Title": [
             "Frontend React Developer", 
-            "Data Scientist", 
+            "Data Scientist",               
             "DevOps Engineer", 
             "HR Manager",
             "Python Backend Engineer",       
-            "Full Stack Node Developer"      
+            "Full Stack Node Developer",
+            "Junior Data Scientist"          # 🆕 Perfect exact data science role match
         ],
         "Skills": [
             "React, JavaScript, CSS", 
@@ -71,7 +71,8 @@ def load_mock_data():
             "Docker, AWS, Linux", 
             "Hiring, Payroll, Excel",
             "Python, Django, PostgreSQL, REST APIs", 
-            "Node.js, Express, React, MongoDB"       
+            "Node.js, Express, React, MongoDB",
+            "Python, SQL, Predictive Analytics, Tableau" # 🆕 Critical data science skills
         ],
         "Location": [
             "Remote", 
@@ -79,7 +80,8 @@ def load_mock_data():
             "Bangalore", 
             "Delhi",
             "Visakhapatnam",                
-            "Visakhapatnam"                 
+            "Visakhapatnam",
+            "Visakhapatnam"                 # 🆕 Perfect geographic target city match
         ],
         "Portal": [
             "Naukri.com", 
@@ -87,7 +89,8 @@ def load_mock_data():
             "Indeed", 
             "Glassdoor", 
             "Naukri.com", 
-            "LinkedIn"
+            "LinkedIn",
+            "Naukri.com"
         ],
         "ApplyURL": [
             "https://naukri.com",
@@ -95,15 +98,17 @@ def load_mock_data():
             "https://indeed.com",
             "https://glassdoor.com",
             "https://naukri.com",
-            "https://linkedin.com"
+            "https://linkedin.com",
+            "https://naukri.com"
         ],
         "PostedDate": [
-            date_yesterday,   # Frontend Developer
-            date_yesterday,   # Data Scientist
-            date_2_days_ago,  # DevOps Engineer
-            date_4_days_ago,  # HR Manager
-            date_today,       # Python Engineer (Vizag)
-            date_today        # Full Stack Node Developer (Vizag)
+            date_yesterday,   
+            date_yesterday,   
+            date_2_days_ago,  
+            date_4_days_ago,  
+            date_today,       
+            date_today,        
+            date_today                       # 🆕 Dynamic timestamp setting (Today)
         ]
     })
 
@@ -122,6 +127,7 @@ if google_api_key:
         )
         text_records = df["search_text"].tolist()
         
+        # Connect to Google's text-embedding platform cluster endpoints
         embeddings = GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-001", 
             google_api_key=google_api_key
@@ -134,10 +140,11 @@ if google_api_key:
         # 4. Strictly the Context Match Finder Interface
         st.markdown("---")
         st.subheader("🔍 Context Match Finder")
-        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., developers in visakhapatnam")
+        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., data scientist, visakhapatnam")
         
         if user_query:
             with st.spinner("Scanning vector clusters for closest matches..."):
+                # Query nearest 2 elements
                 matched_results = vector_db.similarity_search(user_query, k=2)
             
             ai_response_check = False
@@ -177,7 +184,7 @@ if google_api_key:
                 for index, doc in enumerate(matched_results):
                     raw_text = doc.page_content
                     
-                    # Calculate dates dynamically relative to your system's current time
+                    # Compute dates dynamically relative to your system's clock settings
                     days_ago_str = ""
                     try:
                         date_part = raw_text.split(" | PostedDate: ")[1].strip()
