@@ -101,9 +101,9 @@ if google_api_key:
             # ROUTE 1: Google Gemini selected
             if ai_provider == "Google Gemini":
                 with st.spinner("✨ Google Gemini reasoning model calculating reply..."):
-                    # Use Langchain's native Gemini call function
+                    # Use Langchain's native Gemini call function with gemini-3.5-flash
                     llm = ChatGoogleGenerativeAI(
-                        model="gemini-1.5-flash", 
+                        model="gemini-3.5-flash", 
                         google_api_key=google_api_key,
                         temperature=0.3
                     )
