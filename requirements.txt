@@ -1,5 +1,6 @@
 streamlit
 pandas
+groq
 faiss-cpu
 langchain-community
 langchain-google-genai
