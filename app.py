@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from groq import Groq
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.documents import Document
 
 # Core Page Setup
-st.set_page_config(page_title="AI Matcher Suite", layout="wide")
+st.set_page_config(page_title="AI Matcher Suite (Live Data Mode)", layout="wide")
 
 # 1. Sidebar Configurations Panel (Acts as a Password Input)
 st.sidebar.title("🔐 API Authentications")
@@ -44,85 +44,42 @@ st.sidebar.subheader("📱 WhatsApp Community Settings")
 wa_instance = st.sidebar.text_input("WhatsApp Instance ID:", placeholder="e.g., 11011234")
 wa_token = st.sidebar.text_input("WhatsApp Gateway Token:", type="password", placeholder="Enter token...")
 wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.g., 1203632@g.us")
-# 2. Hardcoded Database Loader (Every column layout precisely matched to 7 components)
-@st.cache_data
-def load_mock_data():
-    today = datetime.now().date()
-    
-    # Generate relative timelines automatically
-    date_today = today.strftime("%Y-%m-%d")
-    date_yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
-    date_2_days_ago = (today - timedelta(days=2)).strftime("%Y-%m-%d")
-    date_4_days_ago = (today - timedelta(days=4)).strftime("%Y-%m-%d")
-    
-    return pd.DataFrame({
-        "ID": ["0", "1", "2", "3", "4", "5", "6"],
-        "Title": [
-            "Frontend React Developer", 
-            "Data Scientist",               
-            "DevOps Engineer", 
-            "HR Manager",
-            "Python Backend Engineer",       
-            "Full Stack Node Developer",
-            "Junior Data Scientist"          
-        ],
-        "Company": [
-            "Moprens Solutions",          
-            "TechCorp Global",
-            "CloudScale Tech",
-            "Global Nexus HR",
-            "Vizag Innovate Labs",        
-            "Sankhya Technologies",       
-            "Alpha Analytics India"       
-        ],
-        "Skills": [
-            "React, JavaScript, CSS", 
-            "Python, Machine Learning, SQL", 
-            "Docker, AWS, Linux", 
-            "Hiring, Payroll, Excel",
-            "Python, Django, PostgreSQL, REST APIs", 
-            "Node.js, Express, React, MongoDB",
-            "Python, SQL, Predictive Analytics, Tableau" 
-        ],
-        "Location": [
-            "Remote", 
-            "Mumbai", 
-            "Bangalore", 
-            "Delhi",
-            "Visakhapatnam",                
-            "Visakhapatnam",
-            "Visakhapatnam"                 
-        ],
-        "Portal": [
-            "Naukri.com", 
-            "LinkedIn", 
-            "Indeed", 
-            "Glassdoor", 
-            "Naukri.com", 
-            "LinkedIn",
-            "Naukri.com"
-        ],
-        "ApplyURL": [
-            "https://naukri.com",
-            "https://linkedin.com",
-            "https://indeed.com",
-            "https://glassdoor.co.in",
-            "https://naukri.com",
-            "https://linkedin.com",
-            "https://naukri.com"
-        ],
-        "PostedDate": [
-            date_yesterday,   
-            date_yesterday,   
-            date_2_days_ago,  
-            date_4_days_ago,  
-            date_today,       
-            date_today,        
-            date_today                       
-        ]
-    })
+# Main Canvas Header
+st.title("🚀 Real AI Search & WhatsApp Broadcast Suite")
+st.write("Upload real recruitment data sheets to run semantic matrix queries and broadcast high-scannability alert cards directly onto community channels.")
 
-df = load_mock_data()
+# 2. Dynamic Real Data File Ingestor (Replaces the simulation entirely)
+st.subheader("📁 Ingest Live Job Dataset")
+uploaded_file = st.file_uploader(
+    label="Upload your real job spreadsheet (CSV format required):", 
+    type=["csv"],
+    help="Ensure your file includes columns matching exactly: Title, Company, Skills, Location, Portal, ApplyURL, PostedDate"
+)
+
+# Operational Data Assignment Gate
+if uploaded_file is not None:
+    try:
+        # Read real tracking data rows directly from the uploaded file buffer
+        df = pd.read_csv(uploaded_file)
+        
+        # Standardize required verification fields to prevent column mismatch crashes
+        required_columns = ["Title", "Company", "Skills", "Location", "Portal", "ApplyURL", "PostedDate"]
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            st.error(f"❌ Missing Columns in CSV: {missing_columns}. Please match the format layout requirements.")
+            st.stop()
+            
+        # Ensure every single row has a unique string identifier for metadata lookups
+        df["ID"] = df.index.astype(str)
+        st.success(f"📊 Successfully loaded {len(df)} real job listings from your dataset!")
+        
+    except Exception as read_err:
+        st.error(f"❌ Error reading spreadsheet data: {read_err}")
+        st.stop()
+else:
+    st.info("💡 Getting Started: Please upload an active CSV file containing real listings to initialize the AI Search Index.")
+    st.stop()
 
 # 3. Vector Database Processing Loop
 if google_api_key:
@@ -133,7 +90,7 @@ if google_api_key:
             search_string = f"Job: {row['Title']} | Company: {row['Company']} | Skills: {row['Skills']} | Location: {row['Location']} | Portal: {row['Portal']}"
             doc = Document(
                 page_content=search_string,
-                metadata={"row_id": str(row['ID'])} # 🚀 Metadata injection mapping handles matching profiles safely
+                metadata={"row_id": str(row['ID'])} # Metadata injection isolates matching from raw link modifications
             )
             documents.append(doc)
         
@@ -142,13 +99,13 @@ if google_api_key:
             google_api_key=google_api_key
         )
         
-        with st.spinner("Processing rows into AI Vector Map..."):
-            vector_db = FAISS.from_documents(documents, embeddings) # 🚀 Changed from from_texts to from_documents
-        st.success("✅ AI Embeddings indexed successfully!")
+        with st.spinner("Processing live rows into AI Vector Map..."):
+            vector_db = FAISS.from_documents(documents, embeddings)
+        st.success("🤖 Core AI Matrix loaded successfully!")
         # 4. Strictly the Context Match Finder Interface
         st.markdown("---")
         st.subheader("🔍 Context Match Finder")
-        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., developer, visakhapatnam")
+        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., developers in visakhapatnam")
         
         if user_query:
             with st.spinner("Scanning vector clusters for closest matches..."):
@@ -189,7 +146,9 @@ if google_api_key:
                 current_date = datetime.now().date()
                 
                 for index, doc in enumerate(matched_results):
-                    # 🚀 ZERO-EXCEPTION RETRIEVAL: Pull directly out of doc.metadata dictionary object maps
+                    raw_text = doc.page_content
+                    
+                    # ZERO-EXCEPTION RETRIEVAL: Pull variables directly out of dataframe row parameters using metadata ID keys
                     try:
                         row_id = doc.metadata["row_id"]
                         matched_row = df[df["ID"] == row_id].iloc[0]
@@ -199,13 +158,12 @@ if google_api_key:
                         skills = matched_row["Skills"]
                         location = matched_row["Location"]
                         portal = matched_row["Portal"]
-                        url_link = matched_row["ApplyURL"] # 🔗 Safely retains every query string tracking symbol without clipping
-                        posted_date_raw = matched_row["PostedDate"]
+                        url_link = str(matched_row["ApplyURL"]) # Natively outputs the complete tracking string length untouched
+                        posted_date_raw = str(matched_row["PostedDate"])
                     except Exception as extraction_err:
-                        # Safety fallback parameters assignment block
                         job_title, company_name, skills, location, portal, url_link, posted_date_raw = "Job Profile", "Hiring Organization", "Skills Matrix", "Location", "Portal", "https://linkedin.com", "2026-07-09"
                     
-                    # Compute relative timelines
+                    # Compute relative timelines dynamically relative to your local execution clock
                     days_ago_str = ""
                     try:
                         extracted_date = datetime.strptime(posted_date_raw.strip(), "%Y-%m-%d").date()
