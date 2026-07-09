@@ -1,0 +1,5 @@
+streamlit
+pandas
+faiss-cpu
+langchain-community
+langchain-google-genai
