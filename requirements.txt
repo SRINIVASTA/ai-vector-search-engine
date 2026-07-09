@@ -1,5 +1,6 @@
 streamlit
 pandas
+requests
 groq
 faiss-cpu
 langchain-community
