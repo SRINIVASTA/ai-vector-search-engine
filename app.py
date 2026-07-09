@@ -46,9 +46,9 @@ if google_api_key:
         df["search_text"] = "Job: " + df["Title"] + " | Skills: " + df["Skills"] + " | Location: " + df["Location"]
         text_records = df["search_text"].tolist()
         
-        # Connect to Google's text-embedding engine
+        # Connect to Google's current text-embedding engine (Replaced retired model-001 string)
         embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001", 
+            model="models/gemini-embedding-001", 
             google_api_key=google_api_key
         )
         
