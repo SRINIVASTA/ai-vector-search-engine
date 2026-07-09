@@ -3,7 +3,8 @@
 An embedding-powered semantic matching dashboard designed to parse recruitment listings using Google Generative AI, summarize contextual insights locally or via Groq LPU acceleration, and broadcast high-scannability notification cards directly to WhatsApp Community channels.
 
 ---
-
+🌐 **Live Interactive Web App:** [Launch Live Streamlit Dashboard](https://ai-vector-search-engine-dptxoahhb8fewsk3h3nsjk.streamlit.app/)
+---
 ## 🎯 Key Features
 
 * **AI-Powered Semantic Engine**: Uses Google's `gemini-embedding-001` to map search intentions conceptually beyond rigid keyword parameters.
