@@ -50,7 +50,7 @@ def load_mock_data():
     return pd.DataFrame({
         "Title": ["Frontend React Developer", "Data Scientist", "DevOps Engineer", "HR Manager"],
         "Skills": ["React, JavaScript, CSS", "Python, Machine Learning, SQL", "Docker, AWS, Linux", "Hiring, Payroll, Excel"],
-        "Location": ["Remote", "Mumbai", "Bangalore", "Delhi"],
+        "Location": ["Remote", "Mumbai", "Bangalore", "Delhi", "Visakhapatnam", "Vizag"],
         "Portal": ["Naukri.com", "LinkedIn", "Indeed", "Glassdoor"],
         "ApplyURL": [
             "https://naukri.com",
