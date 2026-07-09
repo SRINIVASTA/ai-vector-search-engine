@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from groq import Groq
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -44,21 +44,67 @@ wa_instance = st.sidebar.text_input("WhatsApp Instance ID:", placeholder="e.g., 
 wa_token = st.sidebar.text_input("WhatsApp Gateway Token:", type="password", placeholder="Enter token...")
 wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.g., 1203632@g.us")
 
-# 2. Hardcoded Database Loader (Runs purely in background memory now)
+# 2. Hardcoded Database Loader (Completely Dynamic Latest Dates)
 @st.cache_data
 def load_mock_data():
+    # Fetch today's current live date dynamically
+    today = datetime.now().date()
+    
+    # Calculate relative recent days cleanly
+    date_today = today.strftime("%Y-%m-%d")
+    date_yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+    date_2_days_ago = (today - timedelta(days=2)).strftime("%Y-%m-%d")
+    date_4_days_ago = (today - timedelta(days=4)).strftime("%Y-%m-%d")
+    
     return pd.DataFrame({
-        "Title": ["Frontend React Developer", "Data Scientist", "DevOps Engineer", "HR Manager"],
-        "Skills": ["React, JavaScript, CSS", "Python, Machine Learning, SQL", "Docker, AWS, Linux", "Hiring, Payroll, Excel"],
-        "Location": ["Remote", "Mumbai", "Bangalore", "Delhi", "Visakhapatnam", "Vizag"],
-        "Portal": ["Naukri.com", "LinkedIn", "Indeed", "Glassdoor"],
+        "Title": [
+            "Frontend React Developer", 
+            "Data Scientist", 
+            "DevOps Engineer", 
+            "HR Manager",
+            "Python Backend Engineer",       
+            "Full Stack Node Developer"      
+        ],
+        "Skills": [
+            "React, JavaScript, CSS", 
+            "Python, Machine Learning, SQL", 
+            "Docker, AWS, Linux", 
+            "Hiring, Payroll, Excel",
+            "Python, Django, PostgreSQL, REST APIs", 
+            "Node.js, Express, React, MongoDB"       
+        ],
+        "Location": [
+            "Remote", 
+            "Mumbai", 
+            "Bangalore", 
+            "Delhi",
+            "Visakhapatnam",                
+            "Visakhapatnam"                 
+        ],
+        "Portal": [
+            "Naukri.com", 
+            "LinkedIn", 
+            "Indeed", 
+            "Glassdoor", 
+            "Naukri.com", 
+            "LinkedIn"
+        ],
         "ApplyURL": [
             "https://naukri.com",
             "https://linkedin.com",
             "https://indeed.com",
-            "https://glassdoor.com"
+            "https://glassdoor.com",
+            "https://naukri.com",
+            "https://linkedin.com"
         ],
-        "PostedDate": ["2026-07-08", "2026-07-07", "2026-07-05", "2026-06-25"]
+        "PostedDate": [
+            date_yesterday,   # Frontend Developer
+            date_yesterday,   # Data Scientist
+            date_2_days_ago,  # DevOps Engineer
+            date_4_days_ago,  # HR Manager
+            date_today,       # Python Engineer (Vizag)
+            date_today        # Full Stack Node Developer (Vizag)
+        ]
     })
 
 df = load_mock_data()
@@ -88,7 +134,7 @@ if google_api_key:
         # 4. Strictly the Context Match Finder Interface
         st.markdown("---")
         st.subheader("🔍 Context Match Finder")
-        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., data scientist, Mumbai")
+        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., developers in visakhapatnam")
         
         if user_query:
             with st.spinner("Scanning vector clusters for closest matches..."):
@@ -131,7 +177,7 @@ if google_api_key:
                 for index, doc in enumerate(matched_results):
                     raw_text = doc.page_content
                     
-                    # Calculate dates dynamically
+                    # Calculate dates dynamically relative to your system's current time
                     days_ago_str = ""
                     try:
                         date_part = raw_text.split(" | PostedDate: ")[1].strip()
