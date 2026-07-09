@@ -45,27 +45,44 @@ wa_chat_id = st.sidebar.text_input("Target Group/Community ID:", placeholder="e.
 
 # Main Canvas Header
 st.title("🚀 AI Search & WhatsApp Broadcast Suite")
+st.write("An embedding-powered matching layout designed to parse custom profiles and push updates directly to messaging networks.")
 
-# 2. Local Database Mock Dataset
+# 2. Mock Dataset (Upgraded with Portals and Redirect Links)
 @st.cache_data
 def load_mock_data():
     return pd.DataFrame({
         "Title": ["Frontend React Developer", "Data Scientist", "DevOps Engineer", "HR Manager"],
         "Skills": ["React, JavaScript, CSS", "Python, Machine Learning, SQL", "Docker, AWS, Linux", "Hiring, Payroll, Excel"],
-        "Location": ["Remote", "Mumbai", "Bangalore", "Delhi"]
+        "Location": ["Remote", "Mumbai", "Bangalore", "Delhi"],
+        "Portal": ["Naukri.com", "LinkedIn", "Indeed", "Glassdoor"],
+        "ApplyURL": [
+            "https://naukri.com",
+            "https://linkedin.com",
+            "https://indeed.com",
+            "https://glassdoor.com"
+        ]
     })
 
 df = load_mock_data()
-st.subheader("📊 Current Active Database Listings")
-st.dataframe(df, use_container_width=True)
+
+# Sliding Example Expander (Reflecting new link columns)
+with st.expander("💡 Click to view example database format reference"):
+    st.write("Your backend or input data evaluates records matching this structural alignment:")
+    st.dataframe(df, use_container_width=True)
 
 # 3. Vector Database Processing Loop
 if google_api_key:
     try:
-        df["search_text"] = "Job: " + df["Title"] + " | Skills: " + df["Skills"] + " | Location: " + df["Location"]
+        # Preprocess and merge all dimensions including Portal and Apply Link data structures
+        df["search_text"] = (
+            "Job: " + df["Title"] + 
+            " | Skills: " + df["Skills"] + 
+            " | Location: " + df["Location"] + 
+            " | Portal: " + df["Portal"] + 
+            " | ApplyURL: " + df["ApplyURL"]
+        )
         text_records = df["search_text"].tolist()
         
-        # Uses the Embedding engine (This has a massive quota, it will not hit the 429 limit easily)
         embeddings = GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-001", 
             google_api_key=google_api_key
@@ -78,7 +95,7 @@ if google_api_key:
         # 4. Search and Synthesis Block
         st.markdown("---")
         st.subheader("🔍 Context Match Finder")
-        user_query = st.text_input("What profile or criteria are you trying to find?")
+        user_query = st.text_input("What profile or criteria are you trying to find?", placeholder="e.g., data scientist, Mumbai")
         
         if user_query:
             with st.spinner("Scanning vector clusters for closest matches..."):
@@ -87,11 +104,9 @@ if google_api_key:
             ai_response_check = False
             groq_response_text = ""
 
-            # OPTION 1: Local Formatter (Completely free, offline, infinite runs)
             if ai_provider == "Local Formatter (Zero Quota Limit)":
                 ai_response_check = True
 
-            # OPTION 2: Groq Llama 3 (Uses Groq's high-speed cloud chip instead of Google)
             elif ai_provider == "Groq Llama 3 (Fast LLM)":
                 if groq_api_key:
                     with st.spinner("⚡ Processing query via Groq LPU..."):
@@ -109,24 +124,30 @@ if google_api_key:
                 else:
                     st.error("🔑 Groq Key Missing. Please provide it in the sidebar.")
 
-            # 5. Build and Display the Clean Output Card
+            # 5. Build and Display Clean Output Card
             if ai_response_check:
                 st.markdown("### 🏆 Top Database Matches Found:")
                 
-                # Format the text card instantly using Python's native processing power
                 simplified_wa_text = f"📢 *New Job Match Alert!*\n\n*Query:* {user_query}\n\n"
                 
-                # If Groq processed a custom summary, append it at the top
                 if groq_response_text:
                     simplified_wa_text += f"*AI Summary:*\n{groq_response_text}\n\n---\n\n"
                 
                 for index, doc in enumerate(matched_results):
-                    clean_item = doc.page_content.replace("Job: ", "*Position:* ").replace(" | Skills: ", "\n*Skills:* ").replace(" | Location: ", "\n*Location:* ")
+                    # Direct structural string clean up mapping for smooth presentation layouts
+                    clean_item = (
+                        doc.page_content
+                        .replace("Job: ", "*Position:* ")
+                        .replace(" | Skills: ", "\n*Skills:* ")
+                        .replace(" | Location: ", "\n*Location:* ")
+                        .replace(" | Portal: ", "\n*Source Portal:* ")
+                        .replace(" | ApplyURL: ", "\n*🔗 Apply Here:* ")
+                    )
                     simplified_wa_text += f"📌 *Match #{index+1}*\n{clean_item}\n\n"
                 
                 simplified_wa_text += "🤖 _Sent via AI Matcher Suite_"
 
-                # Display the clean result block onto your screen
+                # Render output display
                 st.info(simplified_wa_text)
                 
                 # 6. Active WhatsApp Broadcast Engine Logic
